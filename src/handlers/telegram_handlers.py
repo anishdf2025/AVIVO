@@ -13,6 +13,53 @@ class TelegramHandlers:
     def __init__(self):
         self.vision_service = VisionService()
         self.temp_dir = Config.TEMP_DIR
+        self.max_message_length = 4096
+    
+    def split_message(self, text: str, max_length: int = 4096) -> list:
+        """
+        Split long message into chunks
+        
+        Args:
+            text: Message text to split
+            max_length: Maximum length per message
+            
+        Returns:
+            List of message chunks
+        """
+        if len(text) <= max_length:
+            return [text]
+        
+        chunks = []
+        current_chunk = ""
+        
+        # Split by paragraphs first
+        paragraphs = text.split('\n\n')
+        
+        for paragraph in paragraphs:
+            if len(current_chunk) + len(paragraph) + 2 <= max_length:
+                current_chunk += paragraph + "\n\n"
+            else:
+                if current_chunk:
+                    chunks.append(current_chunk.strip())
+                    current_chunk = ""
+                
+                # If single paragraph is too long, split by sentences
+                if len(paragraph) > max_length:
+                    sentences = paragraph.split('. ')
+                    for sentence in sentences:
+                        if len(current_chunk) + len(sentence) + 2 <= max_length:
+                            current_chunk += sentence + ". "
+                        else:
+                            if current_chunk:
+                                chunks.append(current_chunk.strip())
+                            current_chunk = sentence + ". "
+                else:
+                    current_chunk = paragraph + "\n\n"
+        
+        if current_chunk:
+            chunks.append(current_chunk.strip())
+        
+        return chunks
     
     async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /start command"""
@@ -66,14 +113,25 @@ class TelegramHandlers:
             # Get description
             description = self.vision_service.describe_image(str(temp_path))
             
-            # Send response
-            response_message = f"🧠 **Image Description:**\n\n{description}"
-            await update.message.reply_text(response_message)
+            # Split long messages
+            message_chunks = self.split_message(description, self.max_message_length - 50)
+            
+            # Send response (split if needed)
+            if len(message_chunks) == 1:
+                response_message = f"🧠 **Image Description:**\n\n{description}"
+                await update.message.reply_text(response_message)
+            else:
+                # Send first part with header
+                await update.message.reply_text(f"🧠 **Image Description (Part 1/{len(message_chunks)}):**\n\n{message_chunks[0]}")
+                
+                # Send remaining parts
+                for i, chunk in enumerate(message_chunks[1:], start=2):
+                    await update.message.reply_text(f"📄 **Part {i}/{len(message_chunks)}:**\n\n{chunk}")
             
             logger.info(f"Successfully processed image for user {user.id}")
             
         except Exception as e:
-            error_message = f"❌ Sorry, I encountered an error processing your image.\n\nError: {str(e)}"
+            error_message = f"❌ Sorry, I encountered an error processing your image.\n\nError: {str(e)[:200]}"
             await update.message.reply_text(error_message)
             logger.error(f"Error processing image for user {user.id}: {str(e)}")
             

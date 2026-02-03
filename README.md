@@ -45,30 +45,33 @@ Avivo/
 ## Installation
 
 1. Clone the repository
+
 2. Create virtual environment:
    ```bash
    python -m venv .venv
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
    ```
 
-3. Install dependencies:
+3. Activate virtual environment:
+   ```bash
+   # On Windows
+   .venv\Scripts\activate
+   
+   # On Linux/Mac
+   source .venv/bin/activate
+   ```
+
+4. Install dependencies:
    ```bash
    pip install -r requirements.txt
    ```
-
-4. Copy `.env.example` to `.env` and configure:
-   ```bash
-   cp .env.example .env
-   ```
-
-5. Edit `.env` with your credentials
+6. Edit `.env` with your credentials
 
 ## Configuration
 
 Required environment variables in `.env`:
 
 ```env
-TELEGRAM_BOT_TOKEN=your_bot_token
+TELEGRAM_BOT_TOKEN=your_bot_token_here
 OLLAMA_URL=http://localhost:11434/api/generate
 OLLAMA_MODEL=qwen3-vl:4b
 IMAGE_QUALITY=95
@@ -97,76 +100,195 @@ API_PORT=8000
    ```
 
 3. Access the API:
-   - Health check: http://localhost:8000/health
-   - API docs: http://localhost:8000/docs
-   - Root: http://localhost:8000/
+   - Root: `http://localhost:8000/`
+   - Health check: `http://localhost:8000/health`
+   - API docs (Swagger): `http://localhost:8000/docs`
+   - Alternative docs (ReDoc): `http://localhost:8000/redoc`
 
 ### Telegram Bot
 
-- Open Telegram and interact with your bot
-- Send `/start` to begin
-- Send any image to get a description
+1. Open Telegram and search for your bot
+2. Send `/start` to begin
+3. Send any image to get a detailed description
 
 ### REST API Endpoints
 
-#### GET `/`
-Root endpoint with basic info
+#### `GET /`
+Root endpoint with basic information
 
-#### GET `/health`
+**Response:**
+```json
+{
+  "message": "Avivo - AI Image Description Bot",
+  "version": "1.0.0",
+  "status": "running"
+}
+```
+
+#### `GET /health`
 Health check endpoint
 
-#### POST `/api/describe`
-Upload an image to get description
-- Content-Type: multipart/form-data
-- Body: file (image file)
+**Response:**
+```json
+{
+  "status": "healthy",
+  "model": "qwen3-vl:4b",
+  "ollama_url": "http://localhost:11434/api/generate"
+}
+```
 
-#### GET `/api/stats`
+#### `POST /api/describe`
+Upload an image to get AI-generated description
+
+**Request:**
+- Method: `POST`
+- Content-Type: `multipart/form-data`
+- Body: `file` (image file)
+
+**Response:**
+```json
+{
+  "success": true,
+  "filename": "example.jpg",
+  "description": "A detailed description of the image..."
+}
+```
+
+#### `GET /api/stats`
 Get bot statistics and configuration
 
-## API Usage Example
+**Response:**
+```json
+{
+  "model": "qwen3-vl:4b",
+  "image_quality": 95,
+  "max_image_size": 10485760
+}
+```
+
+## API Usage Examples
+
+### Using cURL
 
 ```bash
-# Using curl
 curl -X POST "http://localhost:8000/api/describe" \
-  -F "file=@/path/to/image.jpg"
+  -H "accept: application/json" \
+  -H "Content-Type: multipart/form-data" \
+  -F "file=@/path/to/your/image.jpg"
+```
 
-# Using Python requests
+### Using Python requests
+
+```python
 import requests
 
+# Describe an image
 with open("image.jpg", "rb") as f:
     response = requests.post(
         "http://localhost:8000/api/describe",
         files={"file": f}
     )
-    print(response.json())
+    
+if response.status_code == 200:
+    result = response.json()
+    print(f"Description: {result['description']}")
+else:
+    print(f"Error: {response.status_code}")
 ```
 
-## Commands
+### Using JavaScript fetch
+
+```javascript
+const formData = new FormData();
+formData.append('file', fileInput.files[0]);
+
+fetch('http://localhost:8000/api/describe', {
+  method: 'POST',
+  body: formData
+})
+  .then(response => response.json())
+  .then(data => console.log(data.description))
+  .catch(error => console.error('Error:', error));
+```
+
+## Telegram Bot Commands
 
 - `/start` - Start the bot and see welcome message
-- `/help` - Get help information
+- `/help` - Get help information and usage instructions
 
 ## Development
 
-### Code Structure
+### Project Architecture
 
-- **core/**: Core functionality (config, logging)
-- **services/**: Business logic (vision processing)
-- **handlers/**: Telegram bot handlers
-- **api/**: REST API endpoints
-- **app.py**: FastAPI application
-- **bot.py**: Main bot orchestration
+- **core/**: Core functionality (configuration, logging)
+- **services/**: Business logic (vision model processing)
+- **handlers/**: Telegram bot event handlers
+- **api/**: REST API endpoints and routes
+- **app.py**: FastAPI application with lifespan management
+- **bot.py**: Telegram bot orchestration
+
+### Adding New Features
+
+1. Create new service in `src/services/`
+2. Add routes in `src/api/routes.py`
+3. Update handlers in `src/handlers/`
 
 ### Logging
 
-Logs are stored in `logs/` directory with daily rotation.
+- Logs are stored in `logs/` directory
+- Daily log rotation with timestamp
+- Log level: INFO
+- Format: `YYYY-MM-DD HH:MM:SS - name - LEVEL - message`
+
+### Testing
+
+```bash
+# Test health endpoint
+curl http://localhost:8000/health
+
+# Test with sample image
+curl -X POST http://localhost:8000/api/describe \
+  -F "file=@test_image.jpg"
+```
+
+## Troubleshooting
+
+### Bot not responding
+- Check if Ollama is running: `ollama list`
+- Verify bot token in `.env` file
+- Check logs in `logs/` directory
+
+### API errors
+- Ensure all dependencies are installed: `pip install -r requirements.txt`
+- Check if port 8000 is available
+- Verify Ollama is accessible at configured URL
+
+### Image processing fails
+- Check image format (JPG, PNG supported)
+- Verify image size is under MAX_IMAGE_SIZE
+- Ensure sufficient disk space in `temp/` directory
+
+## Requirements
+
+- Python 3.8+
+- Ollama with Qwen Vision Model
+- Telegram Bot Token
+- 2GB+ RAM recommended
 
 ## License
 
-MIT
+MIT License
 
 ## Author
 
-Your Name
+Anish
+
+## Contributing
+
+Pull requests are welcome! For major changes, please open an issue first.
+
+## Support
+
+For issues and questions, please open an issue on GitHub.
 
 

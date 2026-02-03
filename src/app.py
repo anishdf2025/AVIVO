@@ -61,9 +61,3 @@ app = FastAPI(
 
 # Include routes
 app.include_router(router)
-
-
-@app.get("/favicon.ico")
-async def favicon():
-    """Favicon endpoint"""
-    return {"message": "No favicon"}

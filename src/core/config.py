@@ -16,10 +16,21 @@ class Config:
     # Ollama Configuration
     OLLAMA_URL = os.getenv("OLLAMA_URL")
     OLLAMA_MODEL = os.getenv("OLLAMA_MODEL")
+    OLLAMA_TIMEOUT = int(os.getenv("OLLAMA_TIMEOUT")) if os.getenv("OLLAMA_TIMEOUT") else None
     
     # Image Processing Configuration
     IMAGE_QUALITY = int(os.getenv("IMAGE_QUALITY")) if os.getenv("IMAGE_QUALITY") else None
     MAX_IMAGE_SIZE = int(os.getenv("MAX_IMAGE_SIZE")) if os.getenv("MAX_IMAGE_SIZE") else None
+    
+    # API Configuration
+    API_TIMEOUT = int(os.getenv("API_TIMEOUT")) if os.getenv("API_TIMEOUT") else None
+    
+    # Redis Configuration
+    REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
+    REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
+    REDIS_DB = int(os.getenv("REDIS_DB", "0"))
+    REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", None)
+    REDIS_TTL = int(os.getenv("REDIS_TTL", "86400"))  # 24 hours default
     
     # Paths
     TEMP_DIR = BASE_DIR / "temp"
@@ -34,6 +45,8 @@ class Config:
             "OLLAMA_MODEL": cls.OLLAMA_MODEL,
             "IMAGE_QUALITY": cls.IMAGE_QUALITY,
             "MAX_IMAGE_SIZE": cls.MAX_IMAGE_SIZE,
+            "OLLAMA_TIMEOUT": cls.OLLAMA_TIMEOUT,
+            "API_TIMEOUT": cls.API_TIMEOUT,
         }
         
         missing = [field for field, value in required_fields.items() if not value]
