@@ -64,7 +64,19 @@ Avivo/
    ```bash
    pip install -r requirements.txt
    ```
-6. Edit `.env` with your credentials
+6. **Pull Ollama models:**
+   ```bash
+   # Vision model
+   ollama pull qwen3-vl:4b
+   
+   # Embedding model (optional)
+   ollama pull all-minilm:l6-v2
+   ```
+
+7. **Start Redis using Docker:**
+   ```bash
+   docker run -d --name redis-server -p 6379:6379 redis:latest
+   ```
 
 ## Configuration
 
@@ -166,6 +178,54 @@ Get bot statistics and configuration
 }
 ```
 
+#### `POST /api/embed`
+Generate text embedding vector
+
+**Request:**
+- Method: `POST`
+- Query param: `text` (string)
+
+**Response:**
+```json
+{
+  "success": true,
+  "text_length": 25,
+  "embedding_dimension": 384,
+  "embedding": [0.123, -0.456, ...]
+}
+```
+
+#### `POST /api/similarity`
+Calculate similarity between two texts
+
+**Request:**
+- Method: `POST`
+- Query params: `text1` (string), `text2` (string)
+
+**Response:**
+```json
+{
+  "success": true,
+  "text1_length": 20,
+  "text2_length": 25,
+  "similarity": 0.85,
+  "similarity_percentage": 85.0
+}
+```
+
+#### `GET /api/embedding/health`
+Check embedding service health
+
+**Response:**
+```json
+{
+  "status": "healthy",
+  "model": "all-minilm:l6-v2",
+  "url": "http://localhost:11434/api/embeddings",
+  "dimension": 384
+}
+```
+
 ## API Usage Examples
 
 ### Using cURL
@@ -213,8 +273,34 @@ fetch('http://localhost:8000/api/describe', {
 
 ## Telegram Bot Commands
 
+### Image Analysis
+- Send any image - Get AI-powered description
+
+### RAG Q&A
+- `/ask <question>` - Ask questions from knowledge base
+- `/addtext <text>` - Add text to knowledge base
+- `/clearrag` - Clear RAG knowledge base
+
+### Other Commands
 - `/start` - Start the bot and see welcome message
 - `/help` - Get help information and usage instructions
+- `/stats` - Show system statistics
+
+### Example Usage
+
+```
+# Add knowledge to bot
+/addtext Python is a high-level programming language
+
+# Ask questions
+/ask What is Python?
+
+# Get system stats
+/stats
+
+# Clear knowledge base
+/clearrag
+```
 
 ## Development
 

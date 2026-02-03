@@ -35,6 +35,12 @@ temp/
 logs/
 *.log
 
+# RAG data
+documents/
+vector_db/
+*.faiss
+*.pkl
+
 # Docker
 docker-compose.override.yml
 

@@ -32,13 +32,29 @@ class Config:
     REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", None)
     REDIS_TTL = int(os.getenv("REDIS_TTL", "86400"))  # 24 hours default
     
+    # Embedding Model Configuration
+    EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL")
+    EMBEDDING_URL = os.getenv("EMBEDDING_URL")
+    
+    # RAG Configuration
+    RAG_LLM_MODEL = os.getenv("RAG_LLM_MODEL")
+    RAG_LLM_URL = os.getenv("RAG_LLM_URL")
+    RAG_CHUNK_SIZE = int(os.getenv("RAG_CHUNK_SIZE", "512"))
+    RAG_CHUNK_OVERLAP = int(os.getenv("RAG_CHUNK_OVERLAP", "50"))
+    RAG_TOP_K = int(os.getenv("RAG_TOP_K", "5"))
+    RAG_SIMILARITY_THRESHOLD = float(os.getenv("RAG_SIMILARITY_THRESHOLD", "0.7"))
+    
     # Paths
     TEMP_DIR = BASE_DIR / "temp"
     LOGS_DIR = BASE_DIR / "logs"
+    VECTOR_DB_PATH = BASE_DIR / "vector_db"
     
     @classmethod
     def validate(cls):
         """Validate required configuration"""
+        # Import logger here to avoid circular imports
+        from ..core.logger import logger
+        
         required_fields = {
             "TELEGRAM_BOT_TOKEN": cls.TELEGRAM_BOT_TOKEN,
             "OLLAMA_URL": cls.OLLAMA_URL,
@@ -54,9 +70,14 @@ class Config:
         if missing:
             raise ValueError(f"Missing required configuration: {', '.join(missing)}")
         
+        # Embedding model is optional
+        if cls.EMBEDDING_MODEL and not cls.EMBEDDING_URL:
+            logger.warning("EMBEDDING_MODEL set but EMBEDDING_URL missing")
+        
         # Create necessary directories
         cls.TEMP_DIR.mkdir(exist_ok=True)
         cls.LOGS_DIR.mkdir(exist_ok=True)
+        cls.VECTOR_DB_PATH.mkdir(exist_ok=True)
         
         return True
 

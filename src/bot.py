@@ -22,15 +22,22 @@ class AvivoBot:
         # Add command handlers
         self.app.add_handler(CommandHandler("start", self.handlers.start_command))
         self.app.add_handler(CommandHandler("help", self.handlers.help_command))
+        self.app.add_handler(CommandHandler("ask", self.handlers.ask_command))
+        self.app.add_handler(CommandHandler("addtext", self.handlers.addtext_command))
+        self.app.add_handler(CommandHandler("clearrag", self.handlers.clearrag_command))
+        self.app.add_handler(CommandHandler("stats", self.handlers.stats_command))
         
-        # Add message handlers
+        # Add message handlers - DOCUMENT MUST COME BEFORE PHOTO
+        self.app.add_handler(MessageHandler(filters.Document.ALL, self.handlers.handle_document))
         self.app.add_handler(MessageHandler(filters.PHOTO, self.handlers.handle_photo))
-        self.app.add_handler(MessageHandler(filters.Document.IMAGE, self.handlers.handle_document))
+        self.app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.handlers.handle_text))
         
         # Add error handler
         self.app.add_error_handler(self.handlers.error_handler)
         
-        logger.info("Bot setup completed successfully")
+        logger.info("✅ Bot setup completed successfully")
+        logger.info(f"📄 Registered document handler for RAG")
+        logger.info(f"📸 Registered photo handler for vision")
     
     def run(self):
         """Run the bot"""

@@ -3,6 +3,7 @@ from pathlib import Path
 from telegram import Update
 from telegram.ext import ContextTypes
 from ..services.vision_service import VisionService
+from ..services.rag_service import RAGService
 from ..core.config import Config
 from ..core.logger import logger
 
@@ -12,6 +13,7 @@ class TelegramHandlers:
     
     def __init__(self):
         self.vision_service = VisionService()
+        self.rag_service = RAGService()
         self.temp_dir = Config.TEMP_DIR
         self.max_message_length = 4096
     
@@ -81,16 +83,147 @@ class TelegramHandlers:
         """Handle /help command"""
         help_message = (
             "ℹ️ How to use:\n\n"
-            "1. Send me any image (photo, screenshot, etc.)\n"
-            "2. Wait a few seconds while I analyze it\n"
-            "3. Get a detailed description!\n\n"
+            "📸 Image Analysis:\n"
+            "• Send any image to get a detailed description\n\n"
+            "💬 RAG Q&A (LangChain + FAISS):\n"
+            "• Ask questions directly (auto-detected)\n"
+            "• Upload documents (PDF, DOCX, TXT, etc.)\n"
+            "• /clearrag - Clear knowledge base\n\n"
+            "📊 Other Commands:\n"
+            "• /start - Show welcome message\n"
+            "• /help - Show this help\n"
+            "• /stats - Show system statistics\n\n"
             "💡 Tips:\n"
             "• Higher quality images = better descriptions\n"
-            "• The bot works with JPG, PNG, and other formats\n"
-            "• Processing may take 5-30 seconds depending on image size"
+            "• Semantic search powered by LangChain FAISS"
         )
         
         await update.message.reply_text(help_message)
+    
+    async def ask_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /ask command for RAG queries"""
+        user = update.effective_user
+        
+        if not context.args:
+            await update.message.reply_text(
+                "❓ Please provide a question!\n\n"
+                "Usage: /ask <your question>\n"
+                "Example: /ask What is machine learning?"
+            )
+            return
+        
+        question = ' '.join(context.args)
+        logger.info(f"RAG query: {question[:50]}...")  # ← REMOVED user ID
+        
+        await update.message.reply_text("🔍 Searching knowledge base...")
+        
+        try:
+            result = self.rag_service.query(question, include_sources=False)
+            answer = result.get('answer', 'No answer found.')
+            
+            response = f"💡 **Answer:**\n\n{answer}"
+            message_chunks = self.split_message(response, self.max_message_length - 50)
+            
+            for i, chunk in enumerate(message_chunks):
+                if i == 0:
+                    await update.message.reply_text(chunk)
+                else:
+                    await update.message.reply_text(f"📄 (continued)\n\n{chunk}")
+            
+        except Exception as e:
+            error_msg = f"❌ Error processing your question: {str(e)[:200]}"
+            await update.message.reply_text(error_msg)
+            logger.error(f"RAG query error: {str(e)}")
+    
+    async def addtext_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /addtext command to add text to RAG knowledge base"""
+        user = update.effective_user
+        
+        if not context.args:
+            await update.message.reply_text(
+                "📝 Please provide text to add!\n\n"
+                "Usage: /addtext <your text>\n"
+                "Example: /addtext Machine learning is a subset of AI"
+            )
+            return
+        
+        text = ' '.join(context.args)
+        logger.info("Adding text to RAG")  # ← REMOVED user ID
+        
+        await update.message.reply_text("💾 Adding to knowledge base...")
+        
+        try:
+            metadata = {
+                'source': 'telegram',
+                'user_id': user.id,
+                'username': user.username or 'unknown'
+            }
+            
+            success = self.rag_service.add_document(text, metadata)
+            
+            if success:
+                await update.message.reply_text(
+                    "✅ Text added to knowledge base successfully!\n\n"
+                    "You can now ask questions about it using /ask"
+                )
+                logger.info(f"Text added to RAG by user {user.id}")
+            else:
+                await update.message.reply_text(
+                    "❌ Failed to add text to knowledge base"
+                )
+                
+        except Exception as e:
+            error_msg = f"❌ Error adding text: {str(e)[:200]}"
+            await update.message.reply_text(error_msg)
+            logger.error(f"Error adding text for user {user.id}: {str(e)}")
+    
+    async def clearrag_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /clearrag command to clear RAG knowledge base"""
+        user = update.effective_user
+        logger.info(f"Clear RAG request from user {user.id}")
+        
+        try:
+            success = self.rag_service.vector_store.clear()  # ← USAGE #1
+            
+            if success:
+                await update.message.reply_text(
+                    "🗑️ RAG knowledge base cleared successfully!"
+                )
+                logger.info(f"RAG cleared by user {user.id}")
+            else:
+                await update.message.reply_text(
+                    "❌ Failed to clear knowledge base"
+                )
+                
+        except Exception as e:
+            error_msg = f"❌ Error clearing knowledge base: {str(e)[:200]}"
+            await update.message.reply_text(error_msg)
+            logger.error(f"Error clearing RAG for user {user.id}: {str(e)}")
+    
+    async def stats_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /stats command to show system statistics"""
+        user = update.effective_user
+        logger.info(f"Stats request from user {user.id}")
+        
+        try:
+            rag_stats = self.rag_service.get_stats()
+            
+            stats_message = (
+                "📊 **System Statistics**\n\n"
+                f"🤖 Vision Model: {Config.OLLAMA_MODEL}\n"
+                f"🧠 RAG Model: {rag_stats.get('llm_model', 'N/A')}\n"
+                f"📚 Documents: {rag_stats.get('vector_store', {}).get('total_documents', 0)}\n"
+                f"🔢 Embedding Dim: {rag_stats.get('vector_store', {}).get('embedding_dimension', 0)}\n"
+                f"🎯 Similarity Threshold: {rag_stats.get('similarity_threshold', 0)}\n"
+                f"📦 Top K Results: {rag_stats.get('top_k', 0)}"
+            )
+            
+            await update.message.reply_text(stats_message)
+            
+        except Exception as e:
+            error_msg = f"❌ Error getting stats: {str(e)[:200]}"
+            await update.message.reply_text(error_msg)
+            logger.error(f"Error getting stats for user {user.id}: {str(e)}")
     
     async def handle_photo(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle photo messages"""
@@ -142,15 +275,195 @@ class TelegramHandlers:
                 logger.info(f"Cleaned up temp file: {temp_path}")
     
     async def handle_document(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle document messages (images sent as files)"""
+        """Handle document messages (PDFs, Word files, etc.)"""
+        user = update.effective_user
         document = update.message.document
+        
+        logger.info(f"📄 Received document from user {user.id}: {document.file_name}")
         
         # Check if it's an image
         if document.mime_type and document.mime_type.startswith('image/'):
+            logger.info(f"Document is an image, redirecting to handle_photo")
             await self.handle_photo(update, context)
+            return
+        
+        # Get file extension
+        file_ext = Path(document.file_name).suffix.lower()
+        logger.info(f"📋 Document extension: {file_ext}")
+        
+        # Check if it's a supported document
+        try:
+            supported_formats = self.rag_service.doc_loader.get_supported_formats()
+            logger.info(f"✅ Supported formats: {supported_formats}")
+            
+            if file_ext not in supported_formats:
+                await update.message.reply_text(
+                    f"❌ Unsupported file format: {file_ext}\n\n"
+                    f"Supported formats: {', '.join(supported_formats)}\n\n"
+                    f"Please send: PDF, DOCX, TXT, XLSX, or PPTX files"
+                )
+                return
+        except Exception as e:
+            logger.error(f"❌ Error checking supported formats: {str(e)}", exc_info=True)
+            await update.message.reply_text(f"❌ Error: {str(e)[:200]}")
+            return
+        
+        # Send initial processing message
+        processing_msg = await update.message.reply_text(
+            "📄 **Processing Document**\n\n"
+            "⏳ Step 1/4: Downloading..."
+        )
+        
+        # Download the document
+        temp_path = self.temp_dir / document.file_name
+        
+        try:
+            logger.info(f"⬇️ Downloading document to {temp_path}")
+            file = await context.bot.get_file(document.file_id)
+            await file.download_to_drive(temp_path)
+            logger.info(f"✅ Downloaded document successfully: {temp_path}")
+            
+            # Verify file exists and has content
+            if not temp_path.exists():
+                raise Exception("Downloaded file does not exist")
+            
+            file_size = temp_path.stat().st_size
+            logger.info(f"📦 Downloaded file size: {file_size} bytes")
+            
+            if file_size == 0:
+                raise Exception("Downloaded file is empty")
+            
+            # Update: Loading content
+            await processing_msg.edit_text(
+                "📄 **Processing Document**\n\n"
+                "✅ Step 1/4: Downloaded\n"
+                "⏳ Step 2/4: Loading content..."
+            )
+            
+            # Add to RAG
+            metadata = {
+                'source': 'telegram',
+                'user_id': user.id,
+                'username': user.username or 'unknown',
+                'original_filename': document.file_name,
+                'file_size': file_size
+            }
+            
+            logger.info(f"📚 Loading document with metadata: {metadata}")
+            
+            # Update: Parsing
+            await processing_msg.edit_text(
+                "📄 **Processing Document**\n\n"
+                "✅ Step 1/4: Downloaded\n"
+                "✅ Step 2/4: Content loaded\n"
+                "⏳ Step 3/4: Parsing and chunking..."
+            )
+            
+            success = self.rag_service.add_document_from_file(temp_path, metadata)
+            
+            # Update: Creating embeddings
+            await processing_msg.edit_text(
+                "📄 **Processing Document**\n\n"
+                "✅ Step 1/4: Downloaded\n"
+                "✅ Step 2/4: Content loaded\n"
+                "✅ Step 3/4: Parsed and chunked\n"
+                "⏳ Step 4/4: Creating embeddings and storing..."
+            )
+            
+            if success:
+                # Get stats to show how many chunks were added
+                stats = self.rag_service.get_stats()
+                doc_count = stats.get('vector_store', {}).get('total_documents', 0)
+                
+                await processing_msg.edit_text(
+                    f"✅ **Document Added Successfully!**\n\n"
+                    f"📄 File: {document.file_name}\n"
+                    f"📦 Size: {file_size / 1024:.1f} KB\n"
+                    f"📚 Total documents in knowledge base: {doc_count}\n\n"
+                    f"💡 You can now ask questions using:\n"
+                    f"/ask <your question>"
+                )
+                logger.info(f"✅ Document added to RAG successfully by user {user.id}")
+            else:
+                await processing_msg.edit_text(
+                    "❌ **Failed to Process Document**\n\n"
+                    "The document could not be parsed or added to the knowledge base.\n"
+                    "Please check the logs for details or try a different file."
+                )
+                logger.error(f"❌ Failed to add document to RAG for user {user.id}")
+            
+        except Exception as e:
+            error_message = (
+                f"❌ **Error Processing Document**\n\n"
+                f"File: {document.file_name}\n"
+                f"Error: {str(e)[:150]}\n\n"
+                f"Please try again or contact support if the issue persists."
+            )
+            await processing_msg.edit_text(error_message)
+            logger.error(f"❌ Error processing document for user {user.id}: {str(e)}", exc_info=True)
+            
+        finally:
+            # Clean up
+            if temp_path.exists():
+                try:
+                    temp_path.unlink()
+                    logger.info(f"🧹 Cleaned up temp file: {temp_path}")
+                except Exception as e:
+                    logger.error(f"⚠️ Error cleaning up temp file: {str(e)}")
+    
+    async def handle_text(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle plain text messages - Auto-detect questions and query RAG"""
+        user = update.effective_user
+        text = update.message.text
+        
+        if text.startswith('/'):
+            return
+        
+        # Check if it's a question
+        question_indicators = ['?', 'what', 'who', 'when', 'where', 'why', 'how', 'tell me', 'can you']
+        is_question = any(indicator in text.lower() for indicator in question_indicators)
+        
+        if is_question and len(text.split()) > 3:  # At least 3 words
+            logger.info(f"🔍 Detected question")
+            await update.message.reply_text("🔍 Let me search the knowledge base...")
+            
+            try:
+                result = self.rag_service.query(text, include_sources=False)
+                answer = result.get('answer', 'No answer found.')
+                
+                if 'no relevant information' in answer.lower():
+                    response = (
+                        "⚠️ **No information found in knowledge base**\n\n"
+                        "Please upload documents using file upload or use:\n"
+                        "/addtext <information>"
+                    )
+                else:
+                    response = f"💡 **Answer:**\n\n{answer}"
+                
+                message_chunks = self.split_message(response, self.max_message_length - 50)
+                
+                for i, chunk in enumerate(message_chunks):
+                    if i == 0:
+                        await update.message.reply_text(chunk)
+                    else:
+                        await update.message.reply_text(f"📄 (continued)\n\n{chunk}")
+                
+            except Exception as e:
+                error_msg = f"❌ Error: {str(e)[:200]}"
+                await update.message.reply_text(error_msg)
+                logger.error(f"❌ RAG query error: {str(e)}")
         else:
+            # Not a question - show help
             await update.message.reply_text(
-                "📎 Please send images as photos, not documents, for better results."
+                "💬 I received your message!\n\n"
+                "💡 **Ask me questions** (I'll search automatically)\n"
+                "Example: What is the name in the resume?\n\n"
+                "📸 **Send images** for AI description\n"
+                "📄 **Send documents** (PDF, DOCX) to add to knowledge base\n\n"
+                "Or use commands:\n"
+                "• /ask <question> - Ask questions\n"
+                "• /addtext <info> - Add information\n"
+                "• /help - See all commands"
             )
     
     async def error_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
