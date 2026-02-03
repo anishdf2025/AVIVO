@@ -158,30 +158,3 @@ async def rag_query(question: str, top_k: int = None):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.delete("/api/rag/clear")
-async def clear_rag():
-    """Clear RAG knowledge base"""
-    try:
-        success = rag_service.vector_store.clear()
-        
-        if success:
-            return {"message": "Knowledge base cleared successfully"}
-        raise HTTPException(status_code=500, detail="Failed to clear knowledge base")
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"RAG clear error: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.get("/api/cache/stats")
-async def cache_stats():
-    """Get cache statistics"""
-    return cache_service.get_cache_stats()
-
-
-@router.get("/api/rag/stats")
-async def rag_stats():
-    """Get RAG system statistics"""
-    return rag_service.get_stats()
