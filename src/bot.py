@@ -24,7 +24,6 @@ class AvivoBot:
         self.app.add_handler(CommandHandler("help", self.handlers.help_command))
         self.app.add_handler(CommandHandler("ask", self.handlers.ask_command))
         self.app.add_handler(CommandHandler("addtext", self.handlers.addtext_command))
-        self.app.add_handler(CommandHandler("clearrag", self.handlers.clearrag_command))
         self.app.add_handler(CommandHandler("stats", self.handlers.stats_command))
         
         # Add message handlers - DOCUMENT MUST COME BEFORE PHOTO

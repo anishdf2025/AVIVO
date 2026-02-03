@@ -177,29 +177,6 @@ class TelegramHandlers:
             await update.message.reply_text(error_msg)
             logger.error(f"Error adding text for user {user.id}: {str(e)}")
     
-    async def clearrag_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle /clearrag command to clear RAG knowledge base"""
-        user = update.effective_user
-        logger.info(f"Clear RAG request from user {user.id}")
-        
-        try:
-            success = self.rag_service.vector_store.clear()  # ← USAGE #1
-            
-            if success:
-                await update.message.reply_text(
-                    "🗑️ RAG knowledge base cleared successfully!"
-                )
-                logger.info(f"RAG cleared by user {user.id}")
-            else:
-                await update.message.reply_text(
-                    "❌ Failed to clear knowledge base"
-                )
-                
-        except Exception as e:
-            error_msg = f"❌ Error clearing knowledge base: {str(e)[:200]}"
-            await update.message.reply_text(error_msg)
-            logger.error(f"Error clearing RAG for user {user.id}: {str(e)}")
-    
     async def stats_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /stats command to show system statistics"""
         user = update.effective_user

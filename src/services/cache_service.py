@@ -69,30 +69,13 @@ class CacheService:
     # ==================== RAG QUERY CACHING ====================
     
     def generate_rag_cache_key(self, query: str) -> str:
-        """
-        Generate cache key for RAG query
-        
-        Args:
-            query: User's question
-            
-        Returns:
-            Cache key (rag_query:hash)
-        """
-        # Normalize query for better cache hits
+        """Generate cache key for RAG query"""
         normalized = query.lower().strip()
         hash_obj = hashlib.sha256(normalized.encode())
         return f"rag_query:{hash_obj.hexdigest()}"
     
     def get_cached_rag_response(self, query: str) -> Optional[dict]:
-        """
-        Get cached RAG response
-        
-        Args:
-            query: User's question
-            
-        Returns:
-            Cached response dict or None
-        """
+        """Get cached RAG response"""
         if not self.enabled:
             return None
         
@@ -111,17 +94,7 @@ class CacheService:
             return None
     
     def set_cached_rag_response(self, query: str, response: dict, ttl: int = 3600) -> bool:
-        """
-        Cache RAG response
-        
-        Args:
-            query: User's question
-            response: Response dict to cache
-            ttl: Time to live in seconds (default: 1 hour)
-            
-        Returns:
-            True if cached successfully
-        """
+        """Cache RAG response"""
         if not self.enabled:
             return False
         
@@ -166,36 +139,3 @@ class CacheService:
         except Exception as e:
             logger.error(f"Redis stats error: {str(e)}")
             return {"enabled": True, "error": str(e)}
-    
-    def clear_cache(self, cache_type: str = "all") -> bool:
-        """
-        Clear cached data
-        
-        Args:
-            cache_type: 'all', 'images', or 'rag'
-            
-        Returns:
-            True if successful
-        """
-        if not self.enabled:
-            return False
-        
-        try:
-            if cache_type == "all":
-                self.redis_client.flushdb()
-                logger.info("Cleared all cached data")
-            elif cache_type == "images":
-                keys = self.redis_client.keys("image:*")
-                if keys:
-                    self.redis_client.delete(*keys)
-                    logger.info(f"Cleared {len(keys)} cached images")
-            elif cache_type == "rag":
-                keys = self.redis_client.keys("rag_query:*")
-                if keys:
-                    self.redis_client.delete(*keys)
-                    logger.info(f"Cleared {len(keys)} cached RAG queries")
-            
-            return True
-        except Exception as e:
-            logger.error(f"Redis clear error: {str(e)}")
-            return False

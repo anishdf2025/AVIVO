@@ -162,7 +162,7 @@ async def rag_query(question: str, top_k: int = None):
 async def clear_rag():
     """Clear RAG knowledge base"""
     try:
-        success = rag_service.vector_store.clear()  # ← USAGE #2
+        success = rag_service.vector_store.clear()
         
         if success:
             return {"message": "Knowledge base cleared successfully"}
@@ -172,37 +172,6 @@ async def clear_rag():
         raise
     except Exception as e:
         logger.error(f"RAG clear error: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.delete("/api/cache/clear")
-async def clear_cache(cache_type: str = "all"):
-    """
-    Clear Redis cache
-    
-    Args:
-        cache_type: 'all', 'images', or 'rag'
-    """
-    try:
-        if cache_type not in ["all", "images", "rag"]:
-            raise HTTPException(
-                status_code=400, 
-                detail="cache_type must be 'all', 'images', or 'rag'"
-            )
-        
-        success = cache_service.clear_cache(cache_type)
-        
-        if success:
-            return {
-                "message": f"Cleared {cache_type} cache successfully",
-                "cache_type": cache_type
-            }
-        raise HTTPException(status_code=500, detail="Failed to clear cache")
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Cache clear error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

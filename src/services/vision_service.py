@@ -70,7 +70,7 @@ class VisionService:
             
             payload = {
                 "model": self.model,
-                "prompt": prompt or "Describe this image concisely and precisely in under 500 words",
+                "prompt": prompt or "Describe this image concisely and precisely in under 100 words",
                 "images": [img_b64],
                 "stream": False
             }
