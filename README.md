@@ -9,6 +9,7 @@ A Telegram bot with REST API that uses **Qwen Vision Model** for image descripti
 - 🔄 Automatic image processing with caching
 - 📝 Detailed image descriptions
 - 💾 Redis caching for faster responses
+![alt text](Image_caption.jpeg)
 
 ### 📚 RAG Service (Document Q&A)
 - 🧠 **Pure LangChain implementation** - No custom code
@@ -17,6 +18,7 @@ A Telegram bot with REST API that uses **Qwen Vision Model** for image descripti
 - 🔍 Semantic similarity search with Ollama embeddings
 - 💬 Natural language Q&A from uploaded documents
 - 💾 Redis caching for query responses
+![alt text](RAG_Telegram.jpeg)
 
 ### 🛡️ Infrastructure
 - ⚙️ Environment-based configuration
