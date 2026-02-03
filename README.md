@@ -264,55 +264,8 @@ REDIS_TTL=86400  # 24 hours
 
 ---
 
-## Troubleshooting
 
-### RAG Not Responding
 
-```bash
-# Check if vector store has documents
-curl http://localhost:8000/api/rag/stats
-
-# Clear and re-upload documents
-curl -X DELETE http://localhost:8000/api/rag/clear
-```
-
-### Ollama Connection Issues
-
-```bash
-# Verify Ollama is running
-ollama list
-
-# Test embedding generation
-curl http://localhost:11434/api/embeddings \
-  -d '{"model":"all-minilm:l6-v2","prompt":"test"}'
-
-# Test LLM generation
-curl http://localhost:11434/api/generate \
-  -d '{"model":"qwen3:1.7b","prompt":"Hello","stream":false}'
-```
-
-### Redis Connection Issues
-
-```bash
-# Check Redis status
-docker ps | grep redis
-
-# Test Redis connection
-redis-cli ping
-
-# Clear all cache
-curl -X DELETE "http://localhost:8000/api/cache/clear?cache_type=all"
-```
-
-### FAISS Index Corruption
-
-```bash
-# Delete vector store and restart
-rm -rf vector_db/faiss_index/*
-python main.py
-```
-
----
 
 ## Performance Tips
 
@@ -322,27 +275,6 @@ python main.py
 4. **Model Choice**:
    - **all-minilm:l6-v2**: Fast, good accuracy (384 dim)
    - **llama3:8b**: Better answers but slower (use qwen3:1.7b for speed)
-
----
-
-## Requirements
-
-```txt
-python-telegram-bot==20.7
-fastapi==0.109.0
-uvicorn[standard]==0.27.0
-langchain==0.1.0
-langchain-community==0.0.20
-faiss-cpu==1.8.0
-redis==5.0.1
-requests==2.31.0
-Pillow==10.2.0
-python-dotenv==1.0.0
-PyPDF2==3.0.1
-python-docx==1.1.0
-openpyxl==3.1.2
-python-pptx==0.6.23
-```
 
 ---
 
