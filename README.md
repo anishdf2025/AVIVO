@@ -161,8 +161,8 @@ EMBEDDING_URL=http://localhost:11434/api/embeddings
 # RAG Configuration
 RAG_LLM_MODEL=qwen3:1.7b
 RAG_LLM_URL=http://localhost:11434/api/generate
-RAG_CHUNK_SIZE=512
-RAG_CHUNK_OVERLAP=50
+RAG_CHUNK_SIZE=200
+RAG_CHUNK_OVERLAP=20
 RAG_TOP_K=5
 RAG_SIMILARITY_THRESHOLD=0.0
 ```
@@ -244,8 +244,8 @@ RAG_LLM_MODEL=qwen3:1.7b
 EMBEDDING_MODEL=all-minilm:l6-v2
 
 # Chunking parameters
-RAG_CHUNK_SIZE=512          # Characters per chunk
-RAG_CHUNK_OVERLAP=50        # Overlap between chunks
+RAG_CHUNK_SIZE=200          # Characters per chunk
+RAG_CHUNK_OVERLAP=20        # Overlap between chunks
 
 # Search parameters
 RAG_TOP_K=5                 # Number of chunks to retrieve
@@ -269,12 +269,12 @@ REDIS_TTL=86400  # 24 hours
 
 ## Performance Tips
 
-1. **Chunk Size**: Smaller chunks (256-512) = better precision, larger (1024+) = better context
+1. **Chunk Size**: 200 characters optimized for mini LLMs with 20 char overlap for clean boundaries
 2. **Top-K**: More results = better recall but slower, fewer = faster but might miss relevant info
 3. **Caching**: Enable Redis for 10-100x faster repeated queries
 4. **Model Choice**:
    - **all-minilm:l6-v2**: Fast, good accuracy (384 dim)
-   - **llama3:8b**: Better answers but slower (use qwen3:1.7b for speed)
+   - **qwen3:1.7b**: Better answers but slower (use qwen3:1.7b for speed)
 
 ---
 

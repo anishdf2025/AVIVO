@@ -39,8 +39,8 @@ class Config:
     # RAG Configuration
     RAG_LLM_MODEL = os.getenv("RAG_LLM_MODEL")
     RAG_LLM_URL = os.getenv("RAG_LLM_URL")
-    RAG_CHUNK_SIZE = int(os.getenv("RAG_CHUNK_SIZE", "512"))
-    RAG_CHUNK_OVERLAP = int(os.getenv("RAG_CHUNK_OVERLAP", "50"))
+    RAG_CHUNK_SIZE = int(os.getenv("RAG_CHUNK_SIZE", "200"))
+    RAG_CHUNK_OVERLAP = int(os.getenv("RAG_CHUNK_OVERLAP", "20"))
     RAG_TOP_K = int(os.getenv("RAG_TOP_K", "5"))
     RAG_SIMILARITY_THRESHOLD = float(os.getenv("RAG_SIMILARITY_THRESHOLD", "0.7"))
     
